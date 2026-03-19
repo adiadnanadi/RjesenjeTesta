@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rješavač Testova</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0f0f14;--paper:#f5f0e8;--cream:#ede7d5;
+  --blue:#003a70;--blue-mid:#0057a8;--blue-light:#e8f0fa;
+  --gold:#c8921a;--gold-light:#f1c94e;
+  --red:#b03030;--green:#1a6b3a;
+  --border:#c5b99a;--shadow:rgba(15,15,20,0.15)
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--ink);font-family:'Lora',Georgia,serif;min-height:100vh;overflow-x:hidden;position:relative}
+
+body::before{content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse at 15% 15%,rgba(0,58,112,.4) 0%,transparent 55%),
+             radial-gradient(ellipse at 85% 85%,rgba(200,146,26,.2) 0%,transparent 55%),
+             radial-gradient(ellipse at 50% 50%,rgba(0,87,168,.1) 0%,transparent 70%);
+  pointer-events:none;z-index:0;animation:bgpulse 8s ease-in-out infinite alternate}
+@keyframes bgpulse{0%{opacity:.7}100%{opacity:1}}
+
+.page-wrap{position:relative;z-index:1;max-width:1000px;margin:0 auto;padding:40px 24px 80px}
+
+.particles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.particle{position:absolute;border-radius:50%;opacity:0;animation:floatup linear infinite}
+@keyframes floatup{
+  0%{transform:translateY(100vh) scale(0);opacity:0}
+  10%{opacity:.6}90%{opacity:.2}
+  100%{transform:translateY(-20px) scale(1);opacity:0}}
+
+header{text-align:center;padding:56px 0 48px;position:relative}
+header::after{content:'';display:block;width:160px;height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  margin:32px auto 0;animation:lineexpand 1.2s ease forwards}
+@keyframes lineexpand{from{width:0;opacity:0}to{width:160px;opacity:1}}
+
+.header-eyebrow{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:5px;
+  color:var(--gold);text-transform:uppercase;margin-bottom:20px;
+  animation:fadein .8s ease forwards;opacity:0;animation-delay:.2s}
+header h1{font-family:'Playfair Display',serif;font-size:clamp(2.6rem,5vw,4.2rem);
+  font-weight:900;color:var(--paper);line-height:1.1;letter-spacing:-.02em;
+  animation:slidein .9s ease forwards;opacity:0;animation-delay:.4s}
+header h1 span{color:var(--gold-light)}
+.header-sub{font-family:'Lora',serif;font-style:italic;font-size:1rem;
+  color:rgba(245,240,232,.5);margin-top:16px;
+  animation:fadein .8s ease forwards;opacity:0;animation-delay:.7s}
+@keyframes fadein{to{opacity:1}}
+@keyframes slidein{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+.card{background:var(--paper);border-radius:6px;
+  box-shadow:0 8px 60px var(--shadow),inset 0 1px 0 rgba(255,255,255,.9);
+  position:relative;overflow:hidden;
+  animation:cardrise .8s ease forwards;opacity:0;animation-delay:.9s}
+@keyframes cardrise{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;
+  background:linear-gradient(90deg,var(--blue),var(--blue-mid),var(--gold),var(--gold-light),var(--gold));
+  background-size:200% 100%;animation:shimmer 3s linear infinite}
+@keyframes shimmer{0%{background-position:0% 0}100%{background-position:200% 0}}
+.card-inner{padding:40px 44px 44px}
+
+.section-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:3px;
+  text-transform:uppercase;color:var(--blue);margin-bottom:12px;
+  display:flex;align-items:center;gap:10px}
+.section-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── UPLOAD ZONA ── */
+.upload-zone{
+  border:2.5px dashed var(--border);
+  border-radius:6px;
+  background:var(--cream);
+  padding:52px 24px;
+  text-align:center;
+  cursor:pointer;
+  transition:all .25s;
+  position:relative;
+  margin-bottom:28px;
+}
+.upload-zone:hover,.upload-zone.drag-over{
+  border-color:var(--blue-mid);
+  background:var(--blue-light);
+  transform:translateY(-2px);
+  box-shadow:0 6px 24px rgba(0,87,168,.12);
+}
+.upload-zone.has-file{
+  border-color:var(--green);
+  background:rgba(26,107,58,.06);
+}
+.upload-icon{font-size:3rem;margin-bottom:16px;display:block;line-height:1;
+  transition:transform .3s}
+.upload-zone:hover .upload-icon{transform:translateY(-4px)}
+.upload-title{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:700;
+  color:var(--blue);margin-bottom:8px}
+.upload-sub{font-family:'DM Mono',monospace;font-size:11px;color:rgba(15,15,20,.45);
+  letter-spacing:1px}
+.upload-file-info{font-family:'DM Mono',monospace;font-size:12px;color:var(--green);
+  margin-top:12px;font-weight:500;display:none}
+#pdfInput{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+
+/* Prikaz fajla */
+.file-chip{
+  display:none;
+  align-items:center;gap:12px;
+  background:rgba(26,107,58,.1);
+  border:1px solid rgba(26,107,58,.3);
+  border-radius:4px;
+  padding:12px 16px;
+  margin-bottom:22px;
+  font-family:'DM Mono',monospace;
+  font-size:12px;
+  color:var(--green);
+}
+.file-chip.visible{display:flex}
+.file-chip-icon{font-size:18px;flex-shrink:0}
+.file-chip-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-chip-size{opacity:.7;flex-shrink:0}
+.file-chip-remove{cursor:pointer;opacity:.6;transition:opacity .15s;flex-shrink:0;
+  background:none;border:none;font-size:16px;color:var(--red);padding:0;line-height:1}
+.file-chip-remove:hover{opacity:1}
+
+/* Napomena */
+.field{display:flex;flex-direction:column;gap:8px;margin-bottom:22px}
+label{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--blue);font-weight:500}
+textarea,input{font-family:'Lora',serif;font-size:14px;padding:12px 15px;
+  border:1.5px solid var(--border);background:var(--cream);border-radius:4px;
+  color:var(--ink);transition:all .2s;outline:none;width:100%}
+textarea:focus,input:focus{border-color:var(--blue-mid);background:#fff;
+  box-shadow:0 0 0 3px rgba(0,87,168,.1)}
+textarea::placeholder,input::placeholder{color:rgba(15,15,20,.3);font-style:italic}
+textarea{resize:vertical;min-height:90px;line-height:1.6}
+
+/* Info baner */
+.info-banner{background:rgba(200,146,26,.1);border:1px solid rgba(200,146,26,.3);
+  border-radius:4px;padding:13px 17px;margin-bottom:22px;
+  font-family:'DM Mono',monospace;font-size:10.5px;color:#7a5008;line-height:1.75}
+.info-banner strong{color:#6a4006}
+
+/* Gumb */
+.btn-generate{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;
+  letter-spacing:.5px;cursor:pointer;border:none;border-radius:4px;
+  background:var(--blue);color:var(--paper);width:100%;
+  padding:18px 28px;margin-top:10px;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  box-shadow:0 4px 20px rgba(0,58,112,.4);
+  transition:all .25s;position:relative;overflow:hidden}
+.btn-generate::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,transparent 30%,rgba(255,255,255,.08) 50%,transparent 70%);
+  transform:translateX(-100%);transition:transform .5s}
+.btn-generate:hover::before{transform:translateX(100%)}
+.btn-generate:hover:not(:disabled){background:var(--blue-mid);transform:translateY(-2px);
+  box-shadow:0 8px 30px rgba(0,87,168,.5)}
+.btn-generate:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.spinner{width:20px;height:20px;border:2.5px solid rgba(245,240,232,.3);
+  border-top-color:var(--paper);border-radius:50%;
+  animation:spin .6s linear infinite;display:none;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Status bar */
+.status-bar{padding:13px 17px;border-radius:4px;font-family:'DM Mono',monospace;
+  font-size:12px;margin-top:20px;display:none;gap:10px;align-items:center}
+.status-bar.info{background:rgba(0,87,168,.1);color:var(--blue);border:1px solid rgba(0,87,168,.2);display:flex}
+.status-bar.success{background:rgba(26,107,58,.1);color:var(--green);border:1px solid rgba(26,107,58,.2);display:flex}
+.status-bar.error{background:rgba(176,48,48,.1);color:var(--red);border:1px solid rgba(176,48,48,.2);display:flex}
+.status-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.info .status-dot{background:var(--blue-mid);animation:pulse 1.2s ease infinite}
+.success .status-dot{background:var(--green)}
+.error .status-dot{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+
+/* Loading overlay */
+.loading-overlay{position:fixed;inset:0;background:rgba(15,15,20,.92);
+  z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center;
+  backdrop-filter:blur(8px)}
+.loading-overlay.active{display:flex}
+.loading-orb{width:120px;height:120px;position:relative;margin-bottom:40px}
+.orb-ring{position:absolute;inset:0;border-radius:50%;border:3px solid transparent;animation:orbitring 2s linear infinite}
+.orb-ring:nth-child(1){border-top-color:var(--gold-light);animation-duration:1.5s}
+.orb-ring:nth-child(2){inset:10px;border-right-color:var(--blue-mid);animation-duration:2s;animation-direction:reverse}
+.orb-ring:nth-child(3){inset:22px;border-bottom-color:var(--gold);animation-duration:2.5s}
+@keyframes orbitring{to{transform:rotate(360deg)}}
+.orb-center{position:absolute;inset:36px;background:radial-gradient(circle,var(--gold-light),var(--gold));
+  border-radius:50%;animation:orbpulse 1.5s ease-in-out infinite}
+@keyframes orbpulse{0%,100%{transform:scale(.9);opacity:.8}50%{transform:scale(1.1);opacity:1}}
+.loading-title{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--paper);
+  font-weight:700;margin-bottom:12px;text-align:center}
+.loading-step{font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);
+  text-align:center;letter-spacing:2px;min-height:20px;transition:all .4s}
+.loading-progress{width:280px;height:3px;background:rgba(255,255,255,.1);
+  border-radius:2px;margin-top:24px;overflow:hidden}
+.loading-bar{height:100%;background:linear-gradient(90deg,var(--blue-mid),var(--gold));
+  border-radius:2px;width:0%;transition:width .6s ease}
+.loading-facts{margin-top:32px;max-width:340px;text-align:center}
+.fact-card{background:rgba(255,255,255,.06);border:1px solid rgba(200,146,26,.2);
+  border-radius:6px;padding:16px 20px;font-family:'Lora',serif;font-style:italic;
+  font-size:13px;color:rgba(245,240,232,.7);line-height:1.6;
+  animation:factfade 4s ease-in-out infinite}
+@keyframes factfade{0%,100%{opacity:.4}50%{opacity:1}}
+
+/* PDF sekcija */
+.pdf-section{
+  position:relative;
+  margin-left:calc(-50vw + 50%);
+  margin-right:calc(-50vw + 50%);
+  width:100vw;
+  margin-top:40px;
+  display:none;
+  flex-direction:column;
+  height:calc(100vh - 80px);
+  min-height:600px;
+}
+.pdf-section.visible{display:flex;animation:cardrise .6s ease forwards}
+.pdf-banner{
+  background:linear-gradient(90deg, var(--blue) 0%, var(--blue-mid) 60%, rgba(200,146,26,.25) 100%);
+  padding:14px 28px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+  flex-shrink:0;border-bottom:2px solid var(--gold);
+}
+.pdf-banner-left{display:flex;align-items:center;gap:16px}
+.pdf-banner-icon{font-size:22px;opacity:.85}
+.pdf-banner-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:3px;
+  text-transform:uppercase;color:rgba(241,196,78,.7);margin-bottom:3px}
+.pdf-banner-title{font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;
+  color:var(--paper);line-height:1.2}
+.pdf-banner-title em{color:var(--gold-light);font-style:normal}
+.pdf-banner-right{display:flex;align-items:center;gap:10px}
+.btn-dl{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;
+  letter-spacing:1px;cursor:pointer;border:1.5px solid;border-radius:3px;
+  padding:10px 18px;display:inline-flex;align-items:center;gap:8px;
+  transition:all .2s;text-decoration:none}
+.btn-dl-green{background:var(--green);color:#fff;border-color:var(--green)}
+.btn-dl-green:hover{background:#145530;transform:translateY(-1px)}
+.btn-dl-outline{background:transparent;color:var(--paper);border-color:rgba(245,240,232,.4)}
+.btn-dl-outline:hover{background:rgba(255,255,255,.1)}
+.pdf-topbar{background:#2d2d2d;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.pdf-dot{width:11px;height:11px;border-radius:50%}
+.pdf-filename{font-family:'DM Mono',monospace;font-size:11px;color:rgba(255,255,255,.35);margin-left:8px}
+.pdf-wrap{flex:1;display:flex;flex-direction:column;background:#404040;overflow:hidden}
+#pdfFrame{flex:1;width:100%;border:none;display:block;background:#525659;min-height:0}
+
+/* Fallback */
+.fallback-box{display:none;background:var(--cream);border:2px dashed var(--border);
+  border-radius:6px;padding:32px;text-align:center;margin:20px 24px}
+.fallback-box h3{font-family:'Playfair Display',serif;color:var(--blue);font-size:1.3rem;margin-bottom:12px}
+.fallback-box p{font-family:'Lora',serif;font-size:14px;color:var(--ink);line-height:1.7;margin-bottom:20px}
+.fallback-steps{list-style:none;text-align:left;display:inline-block;margin-bottom:24px}
+.fallback-steps li{font-family:'DM Mono',monospace;font-size:12px;color:var(--blue);
+  padding:6px 0;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center}
+.fallback-steps li span{background:var(--blue);color:#fff;border-radius:50%;
+  width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.btn-overleaf{font-family:'Playfair Display',serif;font-size:16px;font-weight:700;
+  background:var(--blue);color:#fff;border:none;border-radius:4px;
+  padding:14px 28px;cursor:pointer;display:inline-flex;align-items:center;gap:10px;
+  box-shadow:0 4px 16px rgba(0,58,112,.35);transition:all .2s}
+.btn-overleaf:hover{background:var(--blue-mid);transform:translateY(-1px)}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:rgba(255,255,255,.03)}
+::-webkit-scrollbar-thumb{background:rgba(200,146,26,.3);border-radius:3px}
+
+@media(max-width:640px){
+  .card-inner{padding:20px 16px}
+  header{padding:36px 0 28px}
+  header h1{font-size:2.2rem}
+  .page-wrap{padding:20px 14px 60px}
+  .pdf-section{height:calc(100vh - 60px)}
+  .pdf-banner{padding:10px 14px}
+  .pdf-banner-title{font-size:1rem}
+  .pdf-banner-right{width:100%;justify-content:stretch}
+  .btn-dl{flex:1;justify-content:center;font-size:11px;padding:10px}
+  .loading-orb{width:90px;height:90px;margin-bottom:28px}
+  .loading-title{font-size:1.3rem}
+  .loading-facts{max-width:280px}
+  .loading-progress{width:220px}
+  .btn-generate{font-size:16px;padding:16px 20px}
+  .upload-zone{padding:32px 16px}
+}
+</style>
+</head>
+<body>
+
+<div class="particles" id="particles"></div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-orb">
+    <div class="orb-ring"></div>
+    <div class="orb-ring"></div>
+    <div class="orb-ring"></div>
+    <div class="orb-center"></div>
+  </div>
+  <div class="loading-title">Rješavanje testa</div>
+  <div class="loading-step" id="loadingStep">Inicijalizacija...</div>
+  <div class="loading-progress">
+    <div class="loading-bar" id="loadingBar"></div>
+  </div>
+  <div class="loading-facts">
+    <div class="fact-card" id="factCard">💡 AI analizira svako pitanje i upisuje tačan odgovor...</div>
+  </div>
+</div>
+
+<div class="page-wrap">
+  <header>
+    <div class="header-eyebrow">⸻ Rješavač Testova ⸻</div>
+    <h1>Rješavač<br><span>Testova</span></h1>
+    <p class="header-sub">Uploaduj PDF testa — sistem ga analizira i vraća riješen test</p>
+  </header>
+
+  <div class="card">
+    <div class="card-inner">
+
+      <div class="info-banner">
+        ⓘ <strong>Kako radi:</strong> Uploaduješ PDF testa → AI čita pitanja i opcije → generiše isti test sa upisanim tačnim odgovorima → vraća kompajlirani PDF spreman za štampu.
+      </div>
+
+      <div class="section-label">Upload testa</div>
+
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="pdfInput" accept=".pdf" onchange="handleFile(this.files[0])">
+        <span class="upload-icon" id="uploadIcon">📄</span>
+        <div class="upload-title" id="uploadTitle">Prevuci PDF ili klikni ovdje</div>
+        <div class="upload-sub" id="uploadSub">PRIHVATA SAMO PDF · MAX 10 MB</div>
+        <div class="upload-file-info" id="uploadFileInfo"></div>
+      </div>
+
+      <div class="file-chip" id="fileChip">
+        <span class="file-chip-icon">📋</span>
+        <span class="file-chip-name" id="chipName">—</span>
+        <span class="file-chip-size" id="chipSize">—</span>
+        <button class="file-chip-remove" onclick="removeFile()" title="Ukloni fajl">✕</button>
+      </div>
+
+      <div class="section-label">Opcije rješavanja</div>
+
+      <div class="field">
+        <label>Dodatne napomene za AI (opciono)</label>
+        <textarea id="napomene" placeholder="npr. Fokus na Kirchhoffove zakone, ignoriši bonus zadatak..."></textarea>
+      </div>
+
+      <button class="btn-generate" id="solveBtn" onclick="solveTest()">
+        <span class="btn-text" id="btnText">✦ Analiziraj i Riješi Test</span>
+        <div class="spinner" id="btnSpinner"></div>
+      </button>
+
+      <div class="status-bar" id="statusBar">
+        <div class="status-dot"></div>
+        <span id="statusText"></span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- PDF SECTION -->
+<div class="pdf-section" id="pdfSection">
+  <div class="pdf-banner" id="pdfBanner">
+    <div class="pdf-banner-left">
+      <div class="pdf-banner-icon">✅</div>
+      <div class="pdf-banner-info">
+        <div class="pdf-banner-label">Riješeni test</div>
+        <div class="pdf-banner-title" id="pdfBannerTitle">
+          Riješen — <em id="pdfBannerFile">—</em>
+        </div>
+      </div>
+    </div>
+    <div class="pdf-banner-right">
+      <a class="btn-dl btn-dl-outline" id="openPdfBtn" href="#" target="_blank" style="display:none">↗ Otvori</a>
+      <a class="btn-dl btn-dl-green" id="downloadPdfBtn" href="#" download="rjesenja.pdf">⬇ Skini PDF</a>
+    </div>
+  </div>
+
+  <div class="fallback-box" id="fallbackBox">
+    <h3>📄 Rješenja su generisana!</h3>
+    <p>Online kompajler nije dostupan iz browsera (CORS ograničenje).<br>
+    Otvori direktno u Overleaf — besplatno, bez instalacije.</p>
+    <ul class="fallback-steps">
+      <li><span>1</span> Klikni dugme ispod</li>
+      <li><span>2</span> Overleaf će otvoriti riješeni test</li>
+      <li><span>3</span> Klikni Recompile → Download PDF</li>
+    </ul>
+    <br>
+    <button class="btn-overleaf" onclick="openOverleaf()">⚡ Otvori u Overleaf</button>
+  </div>
+
+  <div class="pdf-wrap" id="pdfWrap">
+    <div class="pdf-topbar">
+      <div class="pdf-dot" style="background:#ff5f57"></div>
+      <div class="pdf-dot" style="background:#febc2e"></div>
+      <div class="pdf-dot" style="background:#28c840"></div>
+      <span class="pdf-filename" id="pdfFilename">rjesenja.pdf</span>
+    </div>
+    <iframe id="pdfFrame" title="PDF Preview"></iframe>
+  </div>
+</div>
+
+<script>
+// ── Particles ──
+(function(){
+  const container = document.getElementById('particles');
+  const colors = ['rgba(200,146,26,.4)','rgba(0,87,168,.3)','rgba(241,196,78,.3)','rgba(245,240,232,.15)'];
+  for(let i=0;i<25;i++){
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random()*6+3;
+    p.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${Math.random()*100}%;
+      background:${colors[Math.floor(Math.random()*colors.length)]};
+      animation-duration:${Math.random()*15+8}s;
+      animation-delay:${Math.random()*10}s;
+    `;
+    container.appendChild(p);
+  }
+})();
+
+// ── Drag & drop ──
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if(file && file.type === 'application/pdf') handleFile(file);
+  else showStatus('error', 'Samo PDF fajlovi su prihvatljivi!');
+});
+
+// ── Fajl handling ──
+let selectedFile = null;
+let selectedFileB64 = null;
+
+function handleFile(file){
+  if(!file) return;
+  if(file.type !== 'application/pdf'){
+    showStatus('error', 'Molimo uploadujte PDF fajl!');
+    return;
+  }
+  if(file.size > 10 * 1024 * 1024){
+    showStatus('error', 'Fajl je prevelik. Maksimum je 10 MB.');
+    return;
+  }
+  selectedFile = file;
+
+  // Konvertuj u base64
+  const reader = new FileReader();
+  reader.onload = function(e){
+    selectedFileB64 = e.target.result.split(',')[1];
+  };
+  reader.readAsDataURL(file);
+
+  // UI update
+  uploadZone.classList.add('has-file');
+  document.getElementById('uploadIcon').textContent = '✅';
+  document.getElementById('uploadTitle').textContent = 'Fajl odabran';
+  document.getElementById('uploadSub').style.display = 'none';
+
+  const chip = document.getElementById('fileChip');
+  chip.classList.add('visible');
+  document.getElementById('chipName').textContent = file.name;
+  document.getElementById('chipSize').textContent = formatSize(file.size);
+
+  showStatus('info', `Fajl spreman: ${file.name}`);
+}
+
+function removeFile(){
+  selectedFile = null;
+  selectedFileB64 = null;
+  document.getElementById('pdfInput').value = '';
+  uploadZone.classList.remove('has-file');
+  document.getElementById('uploadIcon').textContent = '📄';
+  document.getElementById('uploadTitle').textContent = 'Prevuci PDF ili klikni ovdje';
+  document.getElementById('uploadSub').style.display = '';
+  document.getElementById('fileChip').classList.remove('visible');
+  document.getElementById('statusBar').style.display = 'none';
+}
+
+function formatSize(bytes){
+  if(bytes < 1024) return bytes + ' B';
+  if(bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+  return (bytes/1024/1024).toFixed(2) + ' MB';
+}
+
+// ── Facts rotacija ──
+const FACTS = [
+  '🔍 AI čita svako pitanje i analizira tačne odgovore...',
+  '📝 Rješenja se upisuju direktno u test strukturu...',
+  '⚡ Mistral Large model analizira sadržaj predmeta...',
+  '✅ Tačni odgovori označeni su precizno i jasno...',
+  '📊 Svaki tip pitanja ima prilagođen format rješenja...',
+  '🎯 Višestruki izbor, tačno/netačno, kratki odgovori — sve se rješava...',
+];
+let factIdx = 0;
+function rotateFact(){
+  const el = document.getElementById('factCard');
+  el.style.opacity='0';
+  setTimeout(()=>{
+    factIdx = (factIdx+1) % FACTS.length;
+    el.textContent = FACTS[factIdx];
+    el.style.opacity='1';
+  },400);
+}
+setInterval(rotateFact, 4000);
+
+// ── Loading ──
+let stepTimer = null;
+const STEPS = [
+  [8, 'Učitavanje PDF-a...'],
+  [20, 'Slanje na AI analizu...'],
+  [40, 'AI čita pitanja i opcije...'],
+  [62, 'Generisanje rješenja...'],
+  [78, 'Priprema LaTeX dokumenta...'],
+  [88, 'Kompajliranje PDF-a...'],
+  [96, 'Učitavanje rezultata...'],
+];
+
+function startLoadingSteps(){
+  let i = 0;
+  const delays = [300, 1500, 8000, 10000, 4000, 5000, 3000];
+  function next(){
+    if(i >= STEPS.length) return;
+    const [pct, msg] = STEPS[i];
+    document.getElementById('loadingBar').style.width = pct + '%';
+    document.getElementById('loadingStep').textContent = msg;
+    i++;
+    stepTimer = setTimeout(next, delays[i-1] || 3000);
+  }
+  next();
+}
+function showLoading(){
+  document.getElementById('loadingOverlay').classList.add('active');
+  startLoadingSteps();
+}
+function hideLoading(){
+  clearTimeout(stepTimer);
+  document.getElementById('loadingBar').style.width = '100%';
+  document.getElementById('loadingStep').textContent = 'Gotovo!';
+  setTimeout(() => document.getElementById('loadingOverlay').classList.remove('active'), 600);
+}
+function showStatus(type, msg){
+  const bar = document.getElementById('statusBar');
+  bar.className = 'status-bar ' + type;
+  document.getElementById('statusText').textContent = msg;
+}
+function setLoading(on){
+  const btn = document.getElementById('solveBtn');
+  btn.disabled = on;
+  document.getElementById('btnSpinner').style.display = on ? 'block' : 'none';
+  document.getElementById('btnText').textContent = on ? 'Rješavanje...' : '✦ Analiziraj i Riješi Test';
+}
+
+// ── GŁÓWNA FUNKCIJA ──
+let generatedLatex = '';
+
+async function solveTest(){
+  if(!selectedFile || !selectedFileB64){
+    showStatus('error', 'Molimo uploadujte PDF fajl!');
+    return;
+  }
+
+  const napomene = document.getElementById('napomene').value.trim();
+  setLoading(true);
+  showLoading();
+  document.getElementById('pdfSection').classList.remove('visible');
+
+  const systemPrompt = `Ti si ekspert za elektrotehniku i nastavnik srednje škole specijaliziran za kreiranje rješenja testova.
+Analiziraš test iz uploadovanog PDF-a i generišeš KOMPLETAN LaTeX dokument koji sadrži RIJEŠEN TEST.
+
+PREAMBLE (kopiraj doslovno):
+\\documentclass[a4paper,10pt]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage[T1]{fontenc}
+\\usepackage[croatian]{babel}
+\\usepackage[margin=0.8cm, top=0.8cm, bottom=0.8cm]{geometry}
+\\setlength{\\headheight}{28pt}
+\\setlength{\\headsep}{10pt}
+\\usepackage{enumitem}
+\\usepackage{multicol}
+\\usepackage{array}
+\\usepackage{fancyhdr}
+\\usepackage{xcolor}
+\\usepackage{wasysym}
+\\raggedbottom
+\\pagestyle{fancy}
+\\fancyhf{}
+\\fancyhead[C]{\\small\\textbf{RJEŠENJA TESTA -- [PREDMET/TEMA IZ TESTA]}}
+\\fancyhead[R]{\\small\\textit{Nastavnički primjerak}}
+\\fancyfoot[C]{\\small Stranica \\thepage}
+\\renewcommand{\\headrulewidth}{1.2pt}
+\\setlength{\\parindent}{0pt}
+\\setlength{\\parskip}{0.1em}
+\\setlength{\\columnsep}{0.8cm}
+\\newcommand{\\linija}{\\underline{\\hspace{3cm}}}
+\\newcommand{\\kratka}{\\underline{\\hspace{1cm}}}
+\\definecolor{tackno}{RGB}{26,107,58}
+\\definecolor{netackno}{RGB}{176,48,48}
+\\definecolor{highlight}{RGB}{0,87,168}
+
+STRUKTURA RIJEŠENOG TESTA:
+1. Reproduciraj SVAKI zadatak iz originalnog testa
+2. Za svaki zadatak:
+   - VIŠESTRUKI IZBOR: Tačan odgovor označi znakom \\textcolor{tackno}{\\textbf{[A/B/C/D] ✓}} odmah iza opcija
+   - TAČNO/NETAČNO: Upiši \\textcolor{tackno}{\\textbf{T}} ili \\textcolor{netackno}{\\textbf{N}} za svaku tvrdnju
+   - DOPUNI REČENICE: Upiši odgovor na \\linija liniji ovako: \\underline{\\textcolor{highlight}{\\textbf{odgovor}}}
+   - POVEZI POJMOVE: Daj tačne parove, npr. 1-B, 2-D, itd.
+   - KRATKI ODGOVORI: Napiši kratak ali kompletan odgovor (2-4 rečenice)
+   - NABRAJANJE: Napiši tačne stavke
+   - SPAJANJE/MJERENJE: Objasni tačan postupak
+3. Na kraju svakog zadatka dodaj: \\vspace{0.2em}\\hrule\\vspace{0.2em}
+4. TABELA BODOVANJA: Popuni kolonu "Max" prema originalnom testu
+
+FORMAT ODGOVORA: SAMO LaTeX od \\documentclass do \\end{document}. Bez ikakvog drugog teksta.`;
+
+  const userMsg = `Analiziraj priloženi PDF test i generiši kompletan LaTeX dokument sa TAČNIM RJEŠENJIMA svakog zadatka.
+
+Pravila:
+- Reproduciraj SVAKI zadatak iz originalnog testa
+- Za svaki zadatak upiši tačan odgovor jasno i vidljivo
+- Koristi \\textcolor{tackno} za tačne odgovore (zelena boja)
+- Zadatke postavi u isti raspored kao original (multicols ako je bio u originalu)
+- Na kraju dodaj tabelu bodovanja sa Max bodovima iz originala
+${napomene ? `\nDodatne napomene: ${napomene}` : ''}
+
+Vrati SAMO kompletan LaTeX dokument.`;
+
+  try {
+    // Korak 1: Pošalji PDF na backend koji ga prosljeđuje Mistralu
+    document.getElementById('loadingBar').style.width = '25%';
+    document.getElementById('loadingStep').textContent = 'Slanje PDF-a na analizu...';
+
+    const response = await fetch('/api/solve-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pdf_base64: selectedFileB64,
+        system_prompt: systemPrompt,
+        user_message: userMsg
+      })
+    });
+
+    if(!response.ok){
+      const err = await response.json();
+      throw new Error(err.error?.message || `HTTP ${response.status}`);
+    }
+
+    document.getElementById('loadingBar').style.width = '65%';
+    document.getElementById('loadingStep').textContent = 'Rješenja generisana — kompajliranje...';
+
+    const data = await response.json();
+    let latex = data.latex.trim();
+
+    // Čišćenje
+    latex = latex.replace(/^```latex[^\n]*/im,'').replace(/^```tex[^\n]*/im,'')
+                 .replace(/^```[^\n]*/im,'').replace(/```[\s\S]*$/gim,'').trim();
+    const ds = latex.indexOf('\\documentclass');
+    if(ds > 0) latex = latex.substring(ds);
+    if(!latex.includes('\\documentclass')) throw new Error('AI nije vratio validan LaTeX. Pokušaj ponovo.');
+    if(!latex.includes('\\end{document}')) latex += '\n\\end{document}';
+
+    generatedLatex = latex;
+
+    await compileAndShow(latex, selectedFile.name);
+
+  } catch(err){
+    console.error(err);
+    hideLoading();
+    setLoading(false);
+    showStatus('error', `Greška: ${err.message}`);
+  }
+}
+
+async function compileAndShow(latex, originalFilename){
+  const filenameBase = originalFilename.replace('.pdf','').replace(/\s+/g,'_');
+
+  // Pokušaj server proxy
+  try {
+    document.getElementById('loadingBar').style.width = '80%';
+    document.getElementById('loadingStep').textContent = 'Kompajliranje PDF-a...';
+    const resp = await fetch('/api/compile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latex })
+    });
+    if(resp.ok){
+      const ct = resp.headers.get('content-type') || '';
+      if(ct.includes('pdf')){
+        const blob = await resp.blob();
+        showPDF(blob, filenameBase, originalFilename);
+        return;
+      }
+    }
+  } catch(e){ console.warn('Server compile nedostupan:', e.message); }
+
+  // YtoTech fallback
+  try {
+    document.getElementById('loadingBar').style.width = '88%';
+    document.getElementById('loadingStep').textContent = 'Alternativni kompajler...';
+    const resp2 = await fetch('https://latex.ytotech.com/builds/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ compiler: 'pdflatex', resources: [{ main: true, content: latex }] })
+    });
+    if(resp2.ok && (resp2.headers.get('content-type')||'').includes('pdf')){
+      const blob2 = await resp2.blob();
+      showPDF(blob2, filenameBase, originalFilename);
+      return;
+    }
+  } catch(e2){ console.warn('YtoTech nedostupan:', e2.message); }
+
+  // Fallback na Overleaf
+  document.getElementById('loadingBar').style.width = '100%';
+  setTimeout(() => {
+    hideLoading();
+    setLoading(false);
+    showFallbackUI(filenameBase);
+    showStatus('success', '✓ Rješenja generisana! Klikni Otvori u Overleaf.');
+  }, 600);
+}
+
+function showPDF(blob, filenameBase, originalFilename){
+  const pdfUrl = URL.createObjectURL(blob);
+  const filename = `rjesenja_${filenameBase}.pdf`;
+
+  document.getElementById('pdfFilename').textContent = filename;
+  document.getElementById('pdfBannerFile').textContent = originalFilename;
+  document.getElementById('pdfFrame').src = pdfUrl;
+
+  const dlBtn = document.getElementById('downloadPdfBtn');
+  dlBtn.href = pdfUrl;
+  dlBtn.download = filename;
+
+  const openBtn = document.getElementById('openPdfBtn');
+  openBtn.href = pdfUrl;
+  openBtn.style.display = 'inline-flex';
+
+  document.getElementById('fallbackBox').style.display = 'none';
+  document.getElementById('pdfWrap').style.display = 'flex';
+
+  hideLoading();
+  setLoading(false);
+  document.getElementById('pdfSection').classList.add('visible');
+
+  setTimeout(() => {
+    document.getElementById('pdfSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 300);
+
+  showStatus('success', '✓ Test riješen i kompajliran!');
+}
+
+function showFallbackUI(filenameBase){
+  document.getElementById('pdfBannerFile').textContent = filenameBase;
+  document.getElementById('pdfWrap').style.display = 'none';
+  document.getElementById('fallbackBox').style.display = 'block';
+  document.getElementById('pdfSection').classList.add('visible');
+  setTimeout(() => {
+    document.getElementById('pdfSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 300);
+}
+
+function openOverleaf(){
+  if(!generatedLatex) return;
+  const encoded = encodeURIComponent(generatedLatex);
+  const url = `https://www.overleaf.com/docs?snip_uri=data:text/plain;charset=utf-8,${encoded}&filename=rjesenja.tex`;
+  window.open(url, '_blank');
+}
+</script>
+</body>
+</html>
