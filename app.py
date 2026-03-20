@@ -122,13 +122,14 @@ def compile_latex():
 
 # ══════════════════════════════════════════════════
 # API — RJEŠAVANJE TESTA IZ PDF-a
+# Direktno PyPDF2 + mistral-large (bez Pixtral)
 # ══════════════════════════════════════════════════
 
 @app.route("/api/solve-test", methods=["POST"])
 def solve_test():
     try:
         data = request.get_json()
-        pdf_base64 = data.get("pdf_base64", "")
+        pdf_base64    = data.get("pdf_base64", "")
         system_prompt = data.get("system_prompt", "")
         user_message  = data.get("user_message", "")
 
@@ -141,91 +142,48 @@ def solve_test():
 
         pdf_bytes = base64.b64decode(pdf_base64)
 
-        # Pokušaj 1: Pixtral (PDF stranice kao slike)
-        image_contents = _pdf_to_images_base64(pdf_bytes)
-        if image_contents:
-            content_blocks = [{"type": "text", "text": system_prompt}]
-            for img_b64 in image_contents:
-                content_blocks.append({
-                    "type": "image_url",
-                    "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}
-                })
-            content_blocks.append({"type": "text", "text": user_message})
+        # Izvuci tekst iz PDF-a
+        extracted_text = ""
+        try:
+            import PyPDF2
+            reader = PyPDF2.PdfReader(io.BytesIO(pdf_bytes))
+            for page in reader.pages:
+                extracted_text += (page.extract_text() or "") + "\n"
+        except Exception as e:
+            return jsonify({
+                "error": {"message": f"Ne mogu čitati PDF: {e}"}
+            }), 500
 
-            payload = {
-                "model": "pixtral-large-latest",
-                "max_tokens": 16000,
-                "temperature": 0.1,
-                "messages": [{"role": "user", "content": content_blocks}]
-            }
+        if not extracted_text.strip():
+            return jsonify({
+                "error": {"message": "PDF je prazan ili skeniran — nema teksta za ekstrakciju."}
+            }), 400
 
-            try:
-                latex = _call_mistral(payload, api_key, timeout=300)
-                return jsonify({"latex": latex})
-            except Exception as e:
-                print(f"[Pixtral error] {e} — prelazim na text fallback")
+        print(f"[solve-test] Izvuceno {len(extracted_text)} znakova iz PDF-a")
 
-        # Pokušaj 2: PyPDF2 ekstrakcija teksta → mistral-large
-        return _solve_text_fallback(pdf_bytes, system_prompt, user_message, api_key)
+        combined = (
+            f"{user_message}\n\n"
+            f"SADRŽAJ TESTA IZVUČEN IZ PDF-a:\n"
+            f"{'='*60}\n"
+            f"{extracted_text}\n"
+            f"{'='*60}"
+        )
 
-    except Exception as e:
-        return jsonify({"error": {"message": str(e)}}), 500
+        payload = {
+            "model": "mistral-large-latest",
+            "max_tokens": 16000,
+            "temperature": 0.1,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": combined}
+            ]
+        }
 
-
-def _pdf_to_images_base64(pdf_bytes):
-    try:
-        from pdf2image import convert_from_bytes
-        images = convert_from_bytes(pdf_bytes, dpi=150, fmt="jpeg")
-        result = []
-        for img in images[:6]:
-            buf = io.BytesIO()
-            img.save(buf, format="JPEG", quality=85)
-            result.append(base64.b64encode(buf.getvalue()).decode())
-        return result
-    except Exception as e:
-        print(f"[pdf2image] Nije dostupan: {e}")
-        return []
-
-
-def _solve_text_fallback(pdf_bytes, system_prompt, user_message, api_key):
-    extracted_text = ""
-    try:
-        import PyPDF2
-        reader = PyPDF2.PdfReader(io.BytesIO(pdf_bytes))
-        for page in reader.pages:
-            extracted_text += (page.extract_text() or "") + "\n"
-    except Exception as e:
-        return jsonify({
-            "error": {"message": f"Ne mogu čitati PDF: {e}. Provjeri requirements.txt"}
-        }), 500
-
-    if not extracted_text.strip():
-        return jsonify({
-            "error": {"message": "PDF je prazan ili skeniran — nema teksta za ekstrakciju."}
-        }), 400
-
-    combined = (
-        f"{user_message}\n\n"
-        f"SADRŽAJ TESTA IZVUČEN IZ PDF-a:\n"
-        f"{'='*60}\n"
-        f"{extracted_text}\n"
-        f"{'='*60}"
-    )
-
-    payload = {
-        "model": "mistral-large-latest",
-        "max_tokens": 16000,
-        "temperature": 0.1,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": combined}
-        ]
-    }
-
-    try:
-        latex = _call_mistral(payload, api_key, timeout=300)
+        latex = _call_mistral(payload, api_key, timeout=280)
         return jsonify({"latex": latex})
+
     except Exception as e:
+        print(f"[solve-test ERROR] {e}")
         return jsonify({"error": {"message": str(e)}}), 500
 
 
