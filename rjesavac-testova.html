@@ -567,6 +567,9 @@ async function solveTest(){
   const systemPrompt = `Ti si ekspert za elektrotehniku i nastavnik srednje škole specijaliziran za kreiranje rješenja testova.
 Analiziraš test iz uploadovanog PDF-a i generišeš KOMPLETAN LaTeX dokument koji sadrži RIJEŠEN TEST.
 
+KRITIČNO: SVAKI zadatak mora biti riješen — od prvog do posljednjeg, BEZ IZUZETKA.
+Zadatak 1 (Višestruki izbor) se mora riješiti kao i svi ostali. Nikad ne preskači ni jedan zadatak.
+
 PREAMBLE (kopiraj doslovno):
 \\documentclass[a4paper,10pt]{article}
 \\usepackage[utf8]{inputenc}
@@ -580,7 +583,6 @@ PREAMBLE (kopiraj doslovno):
 \\usepackage{array}
 \\usepackage{fancyhdr}
 \\usepackage{xcolor}
-\\usepackage{wasysym}
 \\raggedbottom
 \\pagestyle{fancy}
 \\fancyhf{}
@@ -597,32 +599,46 @@ PREAMBLE (kopiraj doslovno):
 \\definecolor{netackno}{RGB}{176,48,48}
 \\definecolor{highlight}{RGB}{0,87,168}
 
-STRUKTURA RIJEŠENOG TESTA:
-1. Reproduciraj SVAKI zadatak iz originalnog testa
-2. Za svaki zadatak:
-   - VIŠESTRUKI IZBOR: Tačan odgovor označi znakom \\textcolor{tackno}{\\textbf{[A/B/C/D] ✓}} odmah iza opcija
-   - TAČNO/NETAČNO: Upiši \\textcolor{tackno}{\\textbf{T}} ili \\textcolor{netackno}{\\textbf{N}} za svaku tvrdnju
-   - DOPUNI REČENICE: Upiši odgovor na \\linija liniji ovako: \\underline{\\textcolor{highlight}{\\textbf{odgovor}}}
-   - POVEZI POJMOVE: Daj tačne parove, npr. 1-B, 2-D, itd.
-   - KRATKI ODGOVORI: Napiši kratak ali kompletan odgovor (2-4 rečenice)
-   - NABRAJANJE: Napiši tačne stavke
-   - SPAJANJE/MJERENJE: Objasni tačan postupak
-3. Na kraju svakog zadatka dodaj: \\vspace{0.2em}\\hrule\\vspace{0.2em}
-4. TABELA BODOVANJA: Popuni kolonu "Max" prema originalnom testu
+PRAVILA ZA SVAKI TIP ZADATKA:
+
+VIŠESTRUKI IZBOR (Zadatak 1 i slični):
+- Reproduciraj sva pitanja i SVE ponuđene opcije (a, b, c, d)
+- Iza tačne opcije dodaj: \\textcolor{tackno}{\\textbf{ $\\leftarrow$ TAČNO}}
+- Primjer: a) Volt \\quad b) Amper \\textcolor{tackno}{\\textbf{ $\\leftarrow$ TAČNO}} \\quad c) Om \\quad d) Vat
+
+TAČNO/NETAČNO:
+- Iza svake tvrdnje upiši: \\hfill\\textcolor{tackno}{\\textbf{T}} ili \\hfill\\textcolor{netackno}{\\textbf{N}}
+
+DOPUNI REČENICE:
+- Na mjesto \\linija upiši: \\underline{\\textcolor{highlight}{\\textbf{tačan odgovor}}}
+
+POVEZI POJMOVE:
+- Napiši tačne parove jasno ispod tabele: \\textbf{1-B, 2-D, 3-A, 4-C, 5-E}
+
+KRATKI ODGOVORI i NABRAJANJE:
+- Napiši kompletan tačan odgovor (2-4 rečenice) ispisan zelenom bojom: \\textcolor{tackno}{odgovor}
+
+SPAJANJE/MJERENJE/OSTALO:
+- Objasni tačan postupak ispisan zelenom bojom
+
+Na kraju svakog zadatka dodaj separator: \\vspace{0.3em}\\hrule\\vspace{0.3em}
+
+TABELA BODOVANJA: Popuni Max bodove prema originalnom testu.
 
 FORMAT ODGOVORA: SAMO LaTeX od \\documentclass do \\end{document}. Bez ikakvog drugog teksta.`;
 
-  const userMsg = `Analiziraj priloženi PDF test i generiši kompletan LaTeX dokument sa TAČNIM RJEŠENJIMA svakog zadatka.
+  const userMsg = `Analiziraj priloženi PDF test i generiši kompletan LaTeX dokument sa TAČNIM RJEŠENJIMA SVAKOG zadatka.
 
-Pravila:
-- Reproduciraj SVAKI zadatak iz originalnog testa
-- Za svaki zadatak upiši tačan odgovor jasno i vidljivo
-- Koristi \\textcolor{tackno} za tačne odgovore (zelena boja)
-- Zadatke postavi u isti raspored kao original (multicols ako je bio u originalu)
-- Na kraju dodaj tabelu bodovanja sa Max bodovima iz originala
+OBAVEZNO:
+- Počni od ZADATKA 1 i riješi ga prvi — višestruki izbor, označi tačan odgovor strelicom i zelenom bojom
+- Nastavi redom kroz SVE zadatke do posljednjeg
+- Nijedan zadatak ne smije biti izostavljen ili ostavljen praznim
+- Tačni odgovori uvijek zelenom bojom (\\textcolor{tackno}{...})
+- Raspored kao u originalu (multicols ako je bio u originalu)
+- Na kraju tabela bodovanja sa Max bodovima iz originala
 ${napomene ? `\nDodatne napomene: ${napomene}` : ''}
 
-Vrati SAMO kompletan LaTeX dokument.`;
+Vrati SAMO kompletan LaTeX dokument od \\documentclass do \\end{document}.`;
 
   try {
     // Korak 1: Pošalji PDF na backend koji ga prosljeđuje Mistralu
